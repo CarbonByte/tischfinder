@@ -1,100 +1,228 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-<title>Tischfinder</title>
+  <title>Tischfinder</title>
 
-<link rel="icon" href="icon.png">
-<link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
 
-<meta name="theme-color" content="#111111">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Tischfinder">
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Tischfinder">
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
 
-<style>
-body {
-    margin:0;
-    font-family:'Inter', sans-serif;
-    background:#111;
-    color:white;
-    text-align:center;
-}
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+    }
 
-.header {
-    padding:20px;
-    font-size:28px;
-    font-weight:800;
-}
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: #111;
+      padding: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.45);
+    }
 
-input {
-    width:80%;
-    padding:15px;
-    font-size:24px;
-    border-radius:15px;
-    border:none;
-    text-align:center;
-}
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: .5px;
+    }
 
-.map {
-    position:relative;
-    margin-top:20px;
-}
+    .search {
+      display: flex;
+      gap: 8px;
+    }
 
-.map img {
-    width:100%;
-}
+    input {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+    }
 
-.marker {
-    position:absolute;
-    transform:translate(-50%, -50%);
-    background:red;
-    color:white;
-    padding:10px 14px;
-    border-radius:50%;
-    font-weight:bold;
-    display:none;
-}
-</style>
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 0 16px;
+      background: #f5b21b;
+      color: #111;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .status {
+      margin-top: 8px;
+      color: #f5b21b;
+      font-weight: bold;
+      min-height: 20px;
+    }
+
+    .plan-wrap {
+      overflow: auto;
+      background: #222;
+      padding: 10px;
+    }
+
+    .plan {
+      position: relative;
+      width: 1400px;
+      max-width: none;
+    }
+
+    .plan img {
+      width: 100%;
+      display: block;
+      border-radius: 18px;
+    }
+
+    .marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: #e11d48;
+      color: white;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 0 0 14px rgba(225,29,72,.25), 0 10px 30px rgba(0,0,0,.5);
+      animation: pulse .8s infinite alternate;
+      z-index: 10;
+    }
+
+    .tag {
+      position: absolute;
+      transform: translate(-50%, -140%);
+      display: none;
+      background: #9f1239;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 900;
+      z-index: 11;
+    }
+
+    @keyframes pulse {
+      from { transform: translate(-50%, -50%) scale(1); }
+      to { transform: translate(-50%, -50%) scale(1.12); }
+    }
+
+    @media (max-width: 800px) {
+      .plan { width: 1150px; }
+      h1 { font-size: 22px; }
+      input { font-size: 22px; }
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="header">Tischfinder</div>
+  <div class="topbar">
+    <h1>📍 Tischfinder</h1>
+    <div class="search">
+      <input id="tableInput" type="tel" inputmode="numeric" placeholder="Tisch Nr.">
+      <button onclick="resetSearch()">Reset</button>
+    </div>
+    <div id="status" class="status"></div>
+  </div>
 
-<input id="search" placeholder="Tisch Nr eingeben">
-
-<div class="map">
-<img src="https://i.imgur.com/YOURPLAN.png">
-
-<div id="marker" class="marker">305</div>
-</div>
+  <div class="plan-wrap" id="planWrap">
+    <div class="plan">
+      <img src="plan.png" alt="Terrassenplan">
+      <div id="tag" class="tag">HIER</div>
+      <div id="marker" class="marker"></div>
+    </div>
+  </div>
 
 <script>
 const tables = {
-"305": {x:50, y:20},
-"402": {x:50, y:50},
-"200": {x:80, y:80}
+  "311": {x:11.7,y:8.7}, "312": {x:7.8,y:20.9}, "310": {x:14.7,y:20.9},
+  "309": {x:22.7,y:15.1}, "307": {x:31.1,y:8.7}, "308": {x:31.1,y:20.9},
+  "305": {x:42.2,y:8.7}, "306": {x:42.2,y:20.9}, "303": {x:50.2,y:8.7},
+  "304": {x:50.2,y:20.9}, "302": {x:62.3,y:15.1}, "301": {x:69.3,y:9.2},
+  "300": {x:69.3,y:21.0},
+
+  "209": {x:81.4,y:9.4}, "207": {x:78.4,y:21.3}, "208": {x:84.8,y:21.3},
+  "206": {x:83.5,y:42.5}, "205": {x:76.8,y:49.5}, "203": {x:84.2,y:57.2},
+  "204": {x:90.1,y:57.2}, "201": {x:76.9,y:69.8}, "202": {x:86.6,y:69.8},
+  "200": {x:81.5,y:82.3},
+
+  "409": {x:8.5,y:49.3}, "407": {x:16.1,y:42.3}, "408": {x:16.1,y:57.1},
+  "405": {x:26.7,y:42.3}, "406": {x:26.7,y:57.1}, "403": {x:34.6,y:42.3},
+  "404": {x:34.6,y:56.4}, "402": {x:51.8,y:48.0}, "401": {x:61.7,y:42.4},
+  "400": {x:61.7,y:57.2},
+
+  "107": {x:27.5,y:74.6}, "106": {x:35.2,y:74.6}, "105": {x:48.7,y:74.6},
+  "104": {x:55.9,y:74.6}, "103": {x:27.5,y:89.1}, "102": {x:35.2,y:89.1},
+  "101": {x:48.7,y:89.1}, "100": {x:55.9,y:89.1}
 };
 
+const input = document.getElementById("tableInput");
 const marker = document.getElementById("marker");
+const tag = document.getElementById("tag");
+const status = document.getElementById("status");
 
-document.getElementById("search").addEventListener("input", function() {
-let val = this.value;
+input.addEventListener("input", () => {
+  const value = input.value.replace(/[^0-9]/g, "");
+  input.value = value;
 
-if(tables[val]) {
-marker.style.display = "block";
-marker.style.left = tables[val].x + "%";
-marker.style.top = tables[val].y + "%";
-marker.innerText = val;
-} else {
-marker.style.display = "none";
-}
+  const table = tables[value];
+
+  if (!value) {
+    marker.style.display = "none";
+    tag.style.display = "none";
+    status.textContent = "";
+    return;
+  }
+
+  if (!table) {
+    marker.style.display = "none";
+    tag.style.display = "none";
+    status.textContent = "Diese Tischnummer ist nicht im Plan.";
+    return;
+  }
+
+  marker.textContent = value;
+  marker.style.left = table.x + "%";
+  marker.style.top = table.y + "%";
+  marker.style.display = "flex";
+
+  tag.style.left = table.x + "%";
+  tag.style.top = table.y + "%";
+  tag.style.display = "block";
+
+  status.textContent = "Tisch " + value + " ist markiert.";
+
+  setTimeout(() => {
+    marker.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }, 100);
 });
+
+function resetSearch() {
+  input.value = "";
+  marker.style.display = "none";
+  tag.style.display = "none";
+  status.textContent = "";
+  input.focus();
+}
 </script>
 
 </body>
